@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "playwright": "^1.58.1",
+    "cross-env": "^7.0.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.1",
+    "@types/node": "^25.2.0"
+  },
+  "scripts": {
+    "test:api": "cross-env test_env=test npx playwright test --config=config/playwright.api.config.ts"
+  }
+}
