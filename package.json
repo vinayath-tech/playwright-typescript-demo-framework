@@ -1,12 +1,14 @@
 {
   "dependencies": {
+    "cross-env": "^7.0.3",
     "dotenv": "^17.2.3",
-    "playwright": "^1.58.1",
-    "cross-env": "^7.0.3"
+    "playwright": "^1.58.1"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.2.0",
     "@playwright/test": "^1.58.1",
-    "@types/node": "^25.2.0"
+    "@types/node": "^25.2.0",
+    "typescript": "^5.8.3"
   },
   "scripts": {
     "test:api": "cross-env test_env=test npx playwright test --config=config/playwright.api.config.ts"

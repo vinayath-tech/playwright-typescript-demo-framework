@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { ENV } from '../../lib/env';
+import { SharedState } from '../../utils/sharedState';
 
 test.describe('Create token for authentication test', () => {
 
@@ -20,6 +21,12 @@ test.describe('Create token for authentication test', () => {
 
         const responseBody = await response.json();
         expect(responseBody).toHaveProperty('token');
+
+        //Fetch token value
+        const token = responseBody.token;
+        //Store token in SharedState for use in other tests
+        SharedState.setToken(token);
+
     });
 
     test('Create token with invalid Credentials', async({ request}) =>{
