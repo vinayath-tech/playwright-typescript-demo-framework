@@ -11,6 +11,7 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "test:api": "cross-env test_env=test npx playwright test --config=config/playwright.api.config.ts"
+    "test:api": "cross-env test_env=test npx playwright test --config=config/playwright.api.config.ts",
+    "test:ui": "cross-env test_env=test npx playwright test --config=config/playwright.config.ts"
   }
 }
