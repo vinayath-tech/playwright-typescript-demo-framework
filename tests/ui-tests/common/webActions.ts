@@ -1,4 +1,5 @@
 import { Page, expect } from '@playwright/test';
+import { Locator } from 'playwright';
 
 export class WebActions {
 
@@ -27,6 +28,15 @@ export class WebActions {
     async isTextPresent(selector: string, expectedText: string) {
         const locator = this.page.locator(selector);
         await expect(locator).toHaveText(expectedText);
+    }
+
+    async getAllElements(selector: string): Promise<Locator[]> {
+        const eles = this.page.locator(selector).all();
+        return eles;
+    }
+
+    async selectDropdownByValue(selector: string, value: string): Promise<void> {
+        await this.page.selectOption(selector, value);
     }
 
 }
