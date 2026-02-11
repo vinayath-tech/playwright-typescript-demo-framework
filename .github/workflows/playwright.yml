@@ -25,10 +25,10 @@ jobs:
       - name: Run API tests
         run: npm run test:api
         env:
-          API_VALID_USERNAME: ${{ secrets.API_VALID_USERNAME }}
-          API_VALID_PASSWORD: ${{ secrets.API_VALID_PASSWORD }}
-          API_INVALID_USERNAME: ${{ secrets.API_INVALID_USERNAME }}
-          API_INVALID_PASSWORD: ${{ secrets.API_INVALID_PASSWORD }}
+          API_VALID_USERNAME: ${{ secrets.API_VALID_USERNAME || 'admin' }}
+          API_VALID_PASSWORD: ${{ secrets.API_VALID_PASSWORD || 'password123' }}
+          API_INVALID_USERNAME: ${{ secrets.API_INVALID_USERNAME || 'invaliduser' }}
+          API_INVALID_PASSWORD: ${{ secrets.API_INVALID_PASSWORD || 'wrongpass' }}
 
   test-accessibility:
     name: test:accessibility
@@ -51,8 +51,8 @@ jobs:
       - name: Run accessibility tests
         run: npm run test:accessibility
         env:
-          UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME }}
-          UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD }}
+          UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME || 'standard_user' }}
+          UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD || 'secret_sauce' }}
 
   docker-run:
     name: docker:build + docker:run
