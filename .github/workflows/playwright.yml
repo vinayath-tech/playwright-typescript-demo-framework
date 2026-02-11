@@ -24,6 +24,11 @@ jobs:
 
       - name: Run API tests
         run: npm run test:api
+        env:
+          API_VALID_USERNAME: ${{ secrets.API_VALID_USERNAME }}
+          API_VALID_PASSWORD: ${{ secrets.API_VALID_PASSWORD }}
+          API_INVALID_USERNAME: ${{ secrets.API_INVALID_USERNAME }}
+          API_INVALID_PASSWORD: ${{ secrets.API_INVALID_PASSWORD }}
 
   test-accessibility:
     name: test:accessibility
@@ -40,8 +45,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
       - name: Run accessibility tests
         run: npm run test:accessibility
+        env:
+          UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME }}
+          UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD }}
 
   docker-run:
     name: docker:build + docker:run
