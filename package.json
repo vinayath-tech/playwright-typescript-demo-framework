@@ -17,6 +17,6 @@
     "test:ui": "cross-env test_env=test npx playwright test --config=config/playwright.config.ts",
     "test:accessibility": "cross-env test_env=test npx playwright test --grep @accessibility --config=config/playwright.config.ts",
     "docker:build": "docker build -t playwright-tests-demo .",
-    "docker:run": "docker run --rm -v \"%cd%\\playwright-report\":/app/playwright-report playwright-tests-demo"
+    "docker:run": "docker run --rm -v \"$(pwd)/playwright-report\":/app/playwright-report playwright-tests-demo"
   }
 }
