@@ -23,12 +23,13 @@ jobs:
         run: npm ci
 
       - name: Run API tests
-        run: npm run test:api
         env:
           API_VALID_USERNAME: ${{ secrets.API_VALID_USERNAME }}
           API_VALID_PASSWORD: ${{ secrets.API_VALID_PASSWORD }}
           API_INVALID_USERNAME: ${{ secrets.API_INVALID_USERNAME }}
           API_INVALID_PASSWORD: ${{ secrets.API_INVALID_PASSWORD }}
+        run: npm run test:api
+        
 
   test-accessibility:
     name: test:accessibility
