@@ -1,27 +1,68 @@
 name: Playwright Tests
+
 on:
   push:
-    branches: [ main, master ]
+    branches: [ master ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ master ]
+
 jobs:
-  test:
-    timeout-minutes: 60
+  test-api:
+    name: test:api
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run API tests
+        run: npm run test:api
+        env:
+          API_VALID_USERNAME: ${{ secrets.API_VALID_USERNAME || 'admin' }}
+          API_VALID_PASSWORD: ${{ secrets.API_VALID_PASSWORD || 'password123' }}
+          API_INVALID_USERNAME: ${{ secrets.API_INVALID_USERNAME || 'invaliduser' }}
+          API_INVALID_PASSWORD: ${{ secrets.API_INVALID_PASSWORD || 'wrongpass' }}
+
+  test-accessibility:
+    name: test:accessibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run accessibility tests
+        run: npm run test:accessibility
+        env:
+          UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME || 'standard_user' }}
+          UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD || 'secret_sauce' }}
+
+  docker-run:
+    name: docker:build + docker:run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: npm run docker:build
+
+      - name: Run container
+        run: npm run docker:run
