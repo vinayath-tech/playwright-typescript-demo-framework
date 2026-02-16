@@ -21,6 +21,7 @@ jobs:
 
       - name: Create .env.test file
         run: |
+          mkdir -p env
           echo "API_VALID_USERNAME=${{ secrets.API_VALID_USERNAME }}" >> env/.env.test
           echo "API_VALID_PASSWORD=${{ secrets.API_VALID_PASSWORD }}" >> env/.env.test
           echo "API_INVALID_USERNAME=${{ secrets.API_INVALID_USERNAME }}" >> env/.env.test
