@@ -19,16 +19,30 @@ jobs:
         with:
           node-version: 20
 
+      - name: Create .env.test file
+        run: |
+          echo "API_VALID_USERNAME=${{ secrets.API_VALID_USERNAME }}" >> env/.env.test
+          echo "API_VALID_PASSWORD=${{ secrets.API_VALID_PASSWORD }}" >> env/.env.test
+          echo "API_INVALID_USERNAME=${{ secrets.API_INVALID_USERNAME }}" >> env/.env.test
+          echo "API_INVALID_PASSWORD=${{ secrets.API_INVALID_PASSWORD }}" >> env/.env.test
+
+      - name: Verify secrets are loaded
+        run: |
+          if [ -z "${{ secrets.API_VALID_USERNAME }}" ]; then echo "API_VALID_USERNAME is empty"; exit 1; fi
+          if [ -z "${{ secrets.API_VALID_PASSWORD }}" ]; then echo "API_VALID_PASSWORD is empty"; exit 1; fi
+          echo "Secrets are loaded (values are masked)"
+          cat env/.env.test
+
       - name: Install dependencies
         run: npm ci
 
       - name: Run API tests
         run: npm run test:api
         env:
-          API_VALID_USERNAME: ${{ secrets.API_VALID_USERNAME || 'admin' }}
-          API_VALID_PASSWORD: ${{ secrets.API_VALID_PASSWORD || 'password123' }}
-          API_INVALID_USERNAME: ${{ secrets.API_INVALID_USERNAME || 'invaliduser' }}
-          API_INVALID_PASSWORD: ${{ secrets.API_INVALID_PASSWORD || 'wrongpass' }}
+          API_VALID_USERNAME: ${{ secrets.API_VALID_USERNAME }}
+          API_VALID_PASSWORD: ${{ secrets.API_VALID_PASSWORD }}
+          API_INVALID_USERNAME: ${{ secrets.API_INVALID_USERNAME }}
+          API_INVALID_PASSWORD: ${{ secrets.API_INVALID_PASSWORD }}
 
   test-accessibility:
     name: test:accessibility
