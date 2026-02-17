@@ -40,6 +40,7 @@ jobs:
       - name: Run API tests
         run: npm run test:api
         env:
+          test_env: test
           API_VALID_USERNAME: ${{ secrets.API_VALID_USERNAME }}
           API_VALID_PASSWORD: ${{ secrets.API_VALID_PASSWORD }}
           API_INVALID_USERNAME: ${{ secrets.API_INVALID_USERNAME }}
