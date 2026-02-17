@@ -11,6 +11,15 @@ export class CartPage {
         this.webAction = new WebActions(this.page);
     }
 
+    async removeProductFromCart(productName: string) {
+        const productSelector = `[data-test="remove-${productName.toLowerCase().replace(/\s+/g, '-')}"]`;
+        await this.webAction.clickElement(productSelector);
+    }
+
+    async getCartItemCount(): Promise<number> {
+        return await this.page.locator('.cart_item').count();
+    }
+
     async proceedToCheckout() {
         await this.webAction.clickElement('#checkout');
     }

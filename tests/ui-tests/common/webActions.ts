@@ -22,7 +22,7 @@ export class WebActions {
     }
 
     async isElementVisible(selector: string): Promise<boolean> {
-        return await this.page.locator(selector).isVisible();
+        return await this.page.locator(selector).first().isVisible();
     }
 
     async isTextPresent(selector: string, expectedText: string) {

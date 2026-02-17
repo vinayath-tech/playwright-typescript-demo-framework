@@ -1,16 +1,17 @@
 {
   "dependencies": {
+    "@playwright/cli": "^0.1.1",
     "axe-html-reporter": "^2.2.11",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.3",
     "playwright": "^1.58.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.8.4",
     "@faker-js/faker": "^10.2.0",
     "@playwright/test": "^1.58.1",
     "@types/node": "^25.2.0",
-    "typescript": "^5.8.3",
-    "@axe-core/playwright": "^4.8.4"
+    "typescript": "^5.8.3"
   },
   "scripts": {
     "test:api": "cross-env test_env=test npx playwright test --config=config/playwright.api.config.ts",
