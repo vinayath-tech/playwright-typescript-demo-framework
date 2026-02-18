@@ -24,7 +24,7 @@ This framework now includes a custom Playwright reporter that can summarize flak
 ## Environment variables
 
 ```bash
-export AI_TRIAGE_ENDPOINT="https://your-llm-endpoint/v1/chat/completions"
+export AI_TRIAGE_ENDPOINT="https://api.openai.com/v1/chat/completions"
 export AI_TRIAGE_API_KEY="your_api_key"
 export AI_TRIAGE_MODEL="gpt-4o-mini" # optional
 export AI_TRIAGE_MAX_FAILURES="20"    # optional
@@ -46,3 +46,8 @@ When failures occur, you'll get an **AI FAILURE TRIAGE** section in terminal out
 - Keep secrets out of prompt content.
 - Keep model temperature low for deterministic debugging suggestions.
 - You can replace the endpoint with your internal gateway if required by your company.
+
+
+## Windows compatibility
+
+The `test:*:ai-triage` npm scripts use `cross-env`, so `AI_TRIAGE_MAX_FAILURES` works on macOS/Linux and Windows shells.
