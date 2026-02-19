@@ -30,9 +30,13 @@ type AiTriageReporterOptions = {
   maxScreenshotBytes?: number;
 };
 
-type ContentPart =
+type ChatContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string; detail: 'low' } };
+
+type ResponsesContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; image_url: string; detail: 'low' };
 
 class AIFailureTriageReporter implements Reporter {
   private options: Required<AiTriageReporterOptions>;
@@ -58,11 +62,7 @@ class AIFailureTriageReporter implements Reporter {
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
-    if (result.status === test.expectedStatus) {
-      return;
-    }
-
-    if (this.failures.length >= this.options.maxFailures) {
+    if (result.status === test.expectedStatus || this.failures.length >= this.options.maxFailures) {
       return;
     }
 
@@ -90,15 +90,13 @@ class AIFailureTriageReporter implements Reporter {
     }
 
     if (!this.options.endpoint || !this.options.apiKey) {
-      console.log(
-        '[ai-triage] Skipping AI triage. Set AI_TRIAGE_ENDPOINT and AI_TRIAGE_API_KEY to enable.',
-      );
+      console.log('[ai-triage] Skipping AI triage. Set AI_TRIAGE_ENDPOINT and AI_TRIAGE_API_KEY to enable.');
       this.printLocalSummary();
       return;
     }
 
     try {
-      const userContent = this.buildPrompt();
+      const prompt = this.buildPrompt();
 
       const response = await fetch(this.options.endpoint, {
         method: 'POST',
@@ -117,7 +115,7 @@ class AIFailureTriageReporter implements Reporter {
             },
             {
               role: 'user',
-              content: userContent,
+              content: prompt,
             },
           ],
         }),
@@ -141,7 +139,6 @@ class AIFailureTriageReporter implements Reporter {
       }
 
       console.log('\n===== AI FAILURE TRIAGE =====');
-      this.printFailureIndex();
       console.log(triage);
       console.log('=============================\n');
     } catch (error) {
@@ -165,14 +162,6 @@ class AIFailureTriageReporter implements Reporter {
       JSON.stringify(this.failures, null, 2),
     ].join('\n');
   } 
-
-  private printFailureIndex() {
-    console.log('[ai-triage] Failed tests:');
-    for (const failure of this.failures) {
-      console.log(`- [${failure.file}:${failure.line}] ${failure.title}`);
-    }
-    console.log('');
-  }
 
   private printLocalSummary() {
     console.log('\n[ai-triage] Local failure summary:');
