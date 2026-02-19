@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs';
 import type {
   FullConfig,
   FullResult,
@@ -19,7 +18,6 @@ type FailureRecord = {
   retry: number;
   errorMessage?: string;
   stack?: string;
-  screenshots: string[];
 };
 
 type AiTriageReporterOptions = {
@@ -40,10 +38,10 @@ class AIFailureTriageReporter implements Reporter {
   private options: Required<AiTriageReporterOptions>;
   private failures: FailureRecord[] = [];
 
-  constructor(options: AiTriageReporterOptions = {}) {
+  constructor(options: AiTriageReporterOptions) {
     this.options = {
       endpoint: options.endpoint || process.env.AI_TRIAGE_ENDPOINT || '',
-      model: options.model || process.env.AI_TRIAGE_MODEL || 'gpt-4o-mini',
+      model: options.model || process.env.AI_TRIAGE_MODEL || 'gpt-4o',
       apiKey: options.apiKey || process.env.AI_TRIAGE_API_KEY || '',
       maxFailures: options.maxFailures ?? Number(process.env.AI_TRIAGE_MAX_FAILURES || 20),
       includeScreenshots:
@@ -81,8 +79,7 @@ class AIFailureTriageReporter implements Reporter {
       durationMs: result.duration,
       retry: result.retry,
       errorMessage: topError?.message,
-      stack: topError?.stack,
-      screenshots: this.extractScreenshots(result),
+      stack: topError?.stack
     });
   }
 
@@ -101,7 +98,7 @@ class AIFailureTriageReporter implements Reporter {
     }
 
     try {
-      const userContent = this.buildUserContent();
+      const userContent = this.buildPrompt();
 
       const response = await fetch(this.options.endpoint, {
         method: 'POST',
@@ -155,12 +152,6 @@ class AIFailureTriageReporter implements Reporter {
   }
 
   private buildPrompt(): string {
-    const payload = this.failures.map((failure) => ({
-      ...failure,
-      screenshotCount: failure.screenshots.length,
-      screenshots: undefined,
-    }));
-
     return [
       'Analyze these Playwright failures. For each failure provide:',
       '1) Root cause category (selector drift, timing/race, test data, auth/session, backend instability, assertion defect)',
@@ -171,78 +162,14 @@ class AIFailureTriageReporter implements Reporter {
       '[file:line] test title',
       '',
       'Failures:',
-      JSON.stringify(payload, null, 2),
+      JSON.stringify(this.failures, null, 2),
     ].join('\n');
-  }
-
-  private buildUserContent(): string | ContentPart[] {
-    const textPrompt = this.buildPrompt();
-
-    if (!this.options.includeScreenshots) {
-      return textPrompt;
-    }
-
-    const screenshots = this.failures.flatMap((failure) =>
-      failure.screenshots.slice(0, this.options.maxScreenshotsPerFailure),
-    );
-
-    if (!screenshots.length) {
-      return textPrompt;
-    }
-
-    return [
-      { type: 'text', text: textPrompt },
-      ...screenshots.map((url) => ({
-        type: 'image_url' as const,
-        image_url: {
-          url,
-          detail: 'low' as const,
-        },
-      })),
-    ];
-  }
-
-  private extractScreenshots(result: TestResult): string[] {
-    if (!this.options.includeScreenshots) {
-      return [];
-    }
-
-    const screenshotAttachments = result.attachments.filter(
-      (attachment) => attachment.contentType?.startsWith('image/') || attachment.name?.includes('screenshot'),
-    );
-
-    const screenshots: string[] = [];
-
-    for (const attachment of screenshotAttachments) {
-      if (screenshots.length >= this.options.maxScreenshotsPerFailure) {
-        break;
-      }
-
-      if (attachment.path && existsSync(attachment.path)) {
-        const fileBuffer = readFileSync(attachment.path);
-        if (fileBuffer.length <= this.options.maxScreenshotBytes) {
-          screenshots.push(`data:${attachment.contentType ?? 'image/png'};base64,${fileBuffer.toString('base64')}`);
-        }
-        continue;
-      }
-
-      if (attachment.body && attachment.body.length <= this.options.maxScreenshotBytes) {
-        screenshots.push(
-          `data:${attachment.contentType ?? 'image/png'};base64,${attachment.body.toString('base64')}`,
-        );
-      }
-    }
-
-    return screenshots;
-  }
+  } 
 
   private printFailureIndex() {
     console.log('[ai-triage] Failed tests:');
     for (const failure of this.failures) {
       console.log(`- [${failure.file}:${failure.line}] ${failure.title}`);
-      if (failure.screenshots.length) {
-        console.log(`  screenshots attached to AI request: ${failure.screenshots.length}`);
-      }
     }
     console.log('');
   }
@@ -254,9 +181,6 @@ class AIFailureTriageReporter implements Reporter {
       console.log(`  actual vs expected: ${failure.actualStatus} vs ${failure.expectedStatus}`);
       if (failure.errorMessage) {
         console.log(`  error: ${failure.errorMessage.split('\n')[0]}`);
-      }
-      if (failure.screenshots.length) {
-        console.log(`  screenshots captured: ${failure.screenshots.length}`);
       }
     }
     console.log('');
