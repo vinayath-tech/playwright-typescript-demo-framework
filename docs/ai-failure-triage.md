@@ -32,9 +32,9 @@ The `AI FAILURE TRIAGE` section now prints a failure index before the model outp
 ## Environment variables
 
 ```bash
-export AI_TRIAGE_ENDPOINT="https://api.openai.com/v1/chat/completions"
+export AI_TRIAGE_ENDPOINT="https://api.openai.com/v1/responses"
 export AI_TRIAGE_API_KEY="your_api_key"
-export AI_TRIAGE_MODEL="gpt-4o-mini"               # optional
+export AI_TRIAGE_MODEL="gpt-5"                      # optional (recommended with /v1/responses)
 export AI_TRIAGE_MAX_FAILURES="20"                  # optional
 
 # Optional image support (for multimodal models)
@@ -42,6 +42,23 @@ export AI_TRIAGE_INCLUDE_SCREENSHOTS="true"         # default: false
 export AI_TRIAGE_MAX_SCREENSHOTS_PER_FAILURE="1"    # default: 1
 export AI_TRIAGE_MAX_SCREENSHOT_BYTES="500000"      # default: 500000 (~500KB)
 ```
+
+
+## GPT-5 and 400 Bad Request
+
+If you use `gpt-5`, prefer the **Responses API** endpoint:
+
+```bash
+export AI_TRIAGE_ENDPOINT="https://api.openai.com/v1/responses"
+export AI_TRIAGE_MODEL="gpt-5"
+```
+
+This reporter now supports both:
+
+- `https://api.openai.com/v1/responses` (recommended for `gpt-5`)
+- `https://api.openai.com/v1/chat/completions` (legacy-compatible)
+
+If you point to `/v1/chat/completions` with a model that only supports Responses, you may get `400 Bad Request`.
 
 ## Example usage
 

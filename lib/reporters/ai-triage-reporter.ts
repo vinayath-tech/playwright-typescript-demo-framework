@@ -32,9 +32,13 @@ type AiTriageReporterOptions = {
   maxScreenshotBytes?: number;
 };
 
-type ContentPart =
+type ChatContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string; detail: 'low' } };
+
+type ResponsesContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; image_url: string; detail: 'low' };
 
 class AIFailureTriageReporter implements Reporter {
   private options: Required<AiTriageReporterOptions>;
@@ -60,11 +64,7 @@ class AIFailureTriageReporter implements Reporter {
   }
 
   onTestEnd(test: TestCase, result: TestResult) {
-    if (result.status === test.expectedStatus) {
-      return;
-    }
-
-    if (this.failures.length >= this.options.maxFailures) {
+    if (result.status === test.expectedStatus || this.failures.length >= this.options.maxFailures) {
       return;
     }
 
@@ -93,50 +93,34 @@ class AIFailureTriageReporter implements Reporter {
     }
 
     if (!this.options.endpoint || !this.options.apiKey) {
-      console.log(
-        '[ai-triage] Skipping AI triage. Set AI_TRIAGE_ENDPOINT and AI_TRIAGE_API_KEY to enable.',
-      );
+      console.log('[ai-triage] Skipping AI triage. Set AI_TRIAGE_ENDPOINT and AI_TRIAGE_API_KEY to enable.');
       this.printLocalSummary();
       return;
     }
 
     try {
-      const userContent = this.buildUserContent();
-
       const response = await fetch(this.options.endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.options.apiKey}`,
         },
-        body: JSON.stringify({
-          model: this.options.model,
-          temperature: 0.1,
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are a senior QA engineer. Classify root causes for flaky/failed tests and provide the next best debugging actions.',
-            },
-            {
-              role: 'user',
-              content: userContent,
-            },
-          ],
-        }),
+        body: JSON.stringify(this.buildRequestBody()),
       });
 
       if (!response.ok) {
+        const body = await response.text();
         console.log(`[ai-triage] AI request failed: ${response.status} ${response.statusText}`);
+        if (body) {
+          console.log(`[ai-triage] response body: ${body}`);
+        }
         this.printLocalSummary();
         return;
       }
 
-      const json = (await response.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-      };
+      const json = (await response.json()) as Record<string, unknown>;
+      const triage = this.extractTriageText(json);
 
-      const triage = json.choices?.[0]?.message?.content;
       if (!triage) {
         console.log('[ai-triage] AI response did not contain triage output.');
         this.printLocalSummary();
@@ -152,6 +136,54 @@ class AIFailureTriageReporter implements Reporter {
       console.log(`[ai-triage] Unexpected error while calling AI triage: ${message}`);
       this.printLocalSummary();
     }
+  }
+
+  private isResponsesApi(): boolean {
+    return this.options.endpoint.includes('/v1/responses');
+  }
+
+  private buildRequestBody(): Record<string, unknown> {
+    return this.isResponsesApi() ? this.buildResponsesRequestBody() : this.buildChatCompletionsRequestBody();
+  }
+
+  private buildChatCompletionsRequestBody(): Record<string, unknown> {
+    return {
+      model: this.options.model,
+      temperature: 0.1,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a senior QA engineer. Classify root causes for flaky/failed tests and provide the next best debugging actions.',
+        },
+        {
+          role: 'user',
+          content: this.buildChatUserContent(),
+        },
+      ],
+    };
+  }
+
+  private buildResponsesRequestBody(): Record<string, unknown> {
+    return {
+      model: this.options.model,
+      temperature: 0.1,
+      input: [
+        {
+          role: 'system',
+          content: [
+            {
+              type: 'input_text',
+              text: 'You are a senior QA engineer. Classify root causes for flaky/failed tests and provide the next best debugging actions.',
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: this.buildResponsesUserContent(),
+        },
+      ],
+    };
   }
 
   private buildPrompt(): string {
@@ -175,17 +207,14 @@ class AIFailureTriageReporter implements Reporter {
     ].join('\n');
   }
 
-  private buildUserContent(): string | ContentPart[] {
+  private buildChatUserContent(): string | ChatContentPart[] {
     const textPrompt = this.buildPrompt();
 
     if (!this.options.includeScreenshots) {
       return textPrompt;
     }
 
-    const screenshots = this.failures.flatMap((failure) =>
-      failure.screenshots.slice(0, this.options.maxScreenshotsPerFailure),
-    );
-
+    const screenshots = this.collectScreenshots();
     if (!screenshots.length) {
       return textPrompt;
     }
@@ -194,12 +223,48 @@ class AIFailureTriageReporter implements Reporter {
       { type: 'text', text: textPrompt },
       ...screenshots.map((url) => ({
         type: 'image_url' as const,
-        image_url: {
-          url,
-          detail: 'low' as const,
-        },
+        image_url: { url, detail: 'low' as const },
       })),
     ];
+  }
+
+  private buildResponsesUserContent(): ResponsesContentPart[] {
+    const prompt = this.buildPrompt();
+    const content: ResponsesContentPart[] = [{ type: 'input_text', text: prompt }];
+
+    if (!this.options.includeScreenshots) {
+      return content;
+    }
+
+    for (const screenshot of this.collectScreenshots()) {
+      content.push({ type: 'input_image', image_url: screenshot, detail: 'low' });
+    }
+
+    return content;
+  }
+
+  private collectScreenshots(): string[] {
+    return this.failures.flatMap((failure) =>
+      failure.screenshots.slice(0, this.options.maxScreenshotsPerFailure),
+    );
+  }
+
+  private extractTriageText(json: Record<string, unknown>): string | undefined {
+    if (this.isResponsesApi()) {
+      const outputText = json.output_text;
+      if (typeof outputText === 'string' && outputText.trim()) {
+        return outputText;
+      }
+
+      const output = json.output as Array<{ content?: Array<{ type?: string; text?: string }> }> | undefined;
+      const textFromOutput = output
+        ?.flatMap((item) => item.content ?? [])
+        .find((part) => part.type?.includes('text') && typeof part.text === 'string')?.text;
+      return textFromOutput;
+    }
+
+    const choices = json.choices as Array<{ message?: { content?: string } }> | undefined;
+    return choices?.[0]?.message?.content;
   }
 
   private extractScreenshots(result: TestResult): string[] {
@@ -227,9 +292,7 @@ class AIFailureTriageReporter implements Reporter {
       }
 
       if (attachment.body && attachment.body.length <= this.options.maxScreenshotBytes) {
-        screenshots.push(
-          `data:${attachment.contentType ?? 'image/png'};base64,${attachment.body.toString('base64')}`,
-        );
+        screenshots.push(`data:${attachment.contentType ?? 'image/png'};base64,${attachment.body.toString('base64')}`);
       }
     }
 
