@@ -25,7 +25,7 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html'],
-    ['../lib/reporters/ai-triage-reporter.ts'],
+    ['../lib/reporters/ai-failure-analysis.ts'],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {

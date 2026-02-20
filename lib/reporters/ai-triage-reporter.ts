@@ -24,19 +24,8 @@ type AiTriageReporterOptions = {
   endpoint?: string;
   model?: string;
   apiKey?: string;
-  maxFailures?: number;
-  includeScreenshots?: boolean;
-  maxScreenshotsPerFailure?: number;
-  maxScreenshotBytes?: number;
+  maxFailures?: number
 };
-
-type ChatContentPart =
-  | { type: 'text'; text: string }
-  | { type: 'image_url'; image_url: { url: string; detail: 'low' } };
-
-type ResponsesContentPart =
-  | { type: 'input_text'; text: string }
-  | { type: 'input_image'; image_url: string; detail: 'low' };
 
 class AIFailureTriageReporter implements Reporter {
   private options: Required<AiTriageReporterOptions>;
@@ -47,14 +36,8 @@ class AIFailureTriageReporter implements Reporter {
       endpoint: options.endpoint || process.env.AI_TRIAGE_ENDPOINT || '',
       model: options.model || process.env.AI_TRIAGE_MODEL || 'gpt-4o',
       apiKey: options.apiKey || process.env.AI_TRIAGE_API_KEY || '',
-      maxFailures: options.maxFailures ?? Number(process.env.AI_TRIAGE_MAX_FAILURES || 20),
-      includeScreenshots:
-        options.includeScreenshots ?? process.env.AI_TRIAGE_INCLUDE_SCREENSHOTS === 'true',
-      maxScreenshotsPerFailure:
-        options.maxScreenshotsPerFailure ?? Number(process.env.AI_TRIAGE_MAX_SCREENSHOTS_PER_FAILURE || 1),
-      maxScreenshotBytes:
-        options.maxScreenshotBytes ?? Number(process.env.AI_TRIAGE_MAX_SCREENSHOT_BYTES || 500000),
-    };
+      maxFailures: options.maxFailures ?? Number(process.env.AI_TRIAGE_MAX_FAILURES || 20)
+    }
   }
 
   onBegin(_: FullConfig) {
@@ -111,7 +94,7 @@ class AIFailureTriageReporter implements Reporter {
             {
               role: 'system',
               content:
-                'You are a senior QA engineer. Classify root causes for flaky/failed tests and provide the next best debugging actions.',
+                'You are a senior QA engineer. Classify a detailed explanation of root causes for flaky/failed tests and provide the next best debugging actions.',
             },
             {
               role: 'user',
@@ -152,8 +135,9 @@ class AIFailureTriageReporter implements Reporter {
     return [
       'Analyze these Playwright failures. For each failure provide:',
       '1) Root cause category (selector drift, timing/race, test data, auth/session, backend instability, assertion defect)',
-      '2) Confidence score 0-100',
-      '3) One concrete next debugging step',
+      '2) Explain the most likely root cause in 1-2 sentences',
+      '3) Confidence score 0-100',
+      '4) One concrete next debugging step',
       '',
       'Include the failure identifier in your answer using this format:',
       '[file:line] test title',
