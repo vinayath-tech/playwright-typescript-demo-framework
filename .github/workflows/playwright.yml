@@ -67,8 +67,8 @@ jobs:
       - name: Run accessibility tests
         run: npm run test:accessibility
         env:
-          UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME || 'standard_user' }}
-          UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD || 'secret_sauce' }}
+          UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME }}
+          UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD }}
 
   test-ui:
     name: test:ui
