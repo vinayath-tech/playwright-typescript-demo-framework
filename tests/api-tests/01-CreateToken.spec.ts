@@ -9,8 +9,8 @@ test.describe('Create token for authentication test', () => {
         const apiUname = ENV.API_VALID_USERNAME;
         const apiPwd = ENV.API_VALID_PASSWORD;
 
-        console.log(`API Username is ################### ${apiUname}`);
-        console.log(`API Password is ################### ${apiPwd}`);
+        console.log(`API_VALID_USERNAME: defined=${apiUname !== undefined}, length=${apiUname?.length ?? 0}`);
+        console.log(`API_VALID_PASSWORD: defined=${apiPwd !== undefined}, length=${apiPwd?.length ?? 0}`);
 
         const response = await request.post('/auth', {
             data: {
