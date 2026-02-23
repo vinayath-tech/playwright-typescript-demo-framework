@@ -37,6 +37,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify env vars are present before test run
+        run: |
+          if [ -z "$API_VALID_USERNAME" ]; then echo "❌ API_VALID_USERNAME env var is empty"; exit 1; fi
+          if [ -z "$API_VALID_PASSWORD" ]; then echo "❌ API_VALID_PASSWORD env var is empty"; exit 1; fi
+          echo "✅ API credentials are present (values masked by GitHub)"
+        env:
+          API_VALID_USERNAME: ${{ secrets.API_VALID_USERNAME }}
+          API_VALID_PASSWORD: ${{ secrets.API_VALID_PASSWORD }}
+
       - name: Run API tests
         run: npm run test:api
         env:
@@ -67,12 +76,13 @@ jobs:
       - name: Run accessibility tests
         run: npm run test:accessibility
         env:
-          UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME || 'standard_user' }}
-          UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD || 'secret_sauce' }}
+          UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME }}
+          UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD }}
 
-  docker-run:
-    name: docker:build + docker:run
+  test-ui:
+    name: test:ui
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,4 +91,12 @@ jobs:
         run: npm run docker:build
 
       - name: Run container
-        run: npm run docker:run
+        run: |
+          docker run --rm \
+            -e UI_VALID_USERNAME=${{ secrets.UI_VALID_USERNAME }} \
+            -e UI_VALID_PASSWORD=${{ secrets.UI_VALID_PASSWORD }} \
+            -v "$(pwd)/playwright-report":/app/playwright-report \
+            playwright-tests-demo
+        env:
+          UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME }}
+          UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD }}
