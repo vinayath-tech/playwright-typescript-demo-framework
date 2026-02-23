@@ -71,7 +71,7 @@ jobs:
           UI_VALID_PASSWORD: ${{ secrets.UI_VALID_PASSWORD || 'secret_sauce' }}
 
   test-ui:
-    name: Test UI flow
+    name: test:ui
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -84,9 +84,9 @@ jobs:
       - name: Run container
         run: |
           docker run --rm \
-            -e UI_VALID_USERNAME="${{ secrets.UI_VALID_USERNAME || 'standard_user' }}" \
-            -e UI_VALID_PASSWORD="${{ secrets.UI_VALID_PASSWORD || 'secret_sauce' }}" \
-            -v "$(pwd)/playwright-report\":/app/playwright-report \
+            -e UI_VALID_USERNAME=${{ secrets.UI_VALID_USERNAME }} \
+            -e UI_VALID_PASSWORD=${{ secrets.UI_VALID_PASSWORD }} \
+            -v "$(pwd)/playwright-report":/app/playwright-report \
             playwright-tests-demo
         env:
           UI_VALID_USERNAME: ${{ secrets.UI_VALID_USERNAME || 'standard_user' }}
