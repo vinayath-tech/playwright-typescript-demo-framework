@@ -25,7 +25,7 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html'],
-    ['../lib/reporters/ai-failure-analysis.ts'],
+    ['../lib/reporters/ai-failure-analysis/index.ts'],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -34,6 +34,7 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure'
   },
   globalSetup: require.resolve('../lib/global-setup'),
 
