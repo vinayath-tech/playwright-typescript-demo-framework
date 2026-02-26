@@ -19,24 +19,20 @@ export class AIClient {
             body: JSON.stringify({
                 model: this.options.model,
                 temperature: 0.1,
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a senior QA engineer. Analyze the attached screenshot from a failed test and identify likely causes of the failure based on visual cues. Provide a confidence score for each potential cause.'
-                    },
+                instructions: 'You are a senior QA engineer. Analyze the attached screenshot from a failed test and identify likely causes of the failure based on visual cues. Provide a confidence score for each potential cause.',
+                input: [
                     {
                         role: 'user',
                         content: [
                             {
-                                type: 'text',
+                                type: 'input_text',
                                 text: this.promptBuilder.buildVisualPrompt(failure)
                             },
                             {
-                                type: 'image_url',
-                                image_url: {
-                                    url: `data:${failure.screenshotMimeType};base64,${failure.screenshotBase64}`,
-                                    detail: 'high'
-                                }
+                                type: 'input_image',
+                                image_url: `data:${failure.screenshotMimeType};base64,${failure.screenshotBase64}`,
+                                detail: 'high'
+
                             }
                         ]
                     }
@@ -49,10 +45,10 @@ export class AIClient {
         }
 
         const aiResult = (await response.json()) as {
-            choices?: Array<{ message?: { content?: string } }>
+            output?: Array<{ content?: Array<{ text?: string }> }>
         };
 
-        return aiResult.choices?.[0].message?.content;
+        return aiResult.output?.[0].content?.[0].text;
     }
 
     async analyseTextFailures(failure: FailureRecord[]): Promise<string | undefined> {
@@ -66,16 +62,8 @@ export class AIClient {
             body: JSON.stringify({
                 model: this.options.model,
                 temperature: 0.1,
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a senior QA engineer. Classify a detailed explanation of root causes for flaky/failed tests and provide the next best debugging actions.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ]
+                instructions: 'You are a senior QA engineer. Classify a detailed explanation of root causes for flaky/failed tests and provide the next best debugging actions.',
+                input: prompt                
             })
         });
 
@@ -85,9 +73,9 @@ export class AIClient {
         }
 
         const aiResult = (await response.json()) as {
-            choices?: Array<{ message?: { content?: string } }>
+            output?: Array<{ content?: Array<{ text?: string }> }>
         };
 
-        return aiResult.choices?.[0].message?.content;
+        return aiResult.output?.[0].content?.[0].text;
     }
 }
