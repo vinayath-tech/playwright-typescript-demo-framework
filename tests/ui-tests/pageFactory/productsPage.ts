@@ -12,7 +12,8 @@ export class ProductsPage {
     }
 
     async openProductDetails(productName: string) {
-        await this.page.locator('.inventory_item_name', { hasText: productName }).click();
+        // Generated pattern: page.locator('[data-test="item-{id}-title-link"]') — using wildcard for generic by-name click
+        await this.page.locator('[data-test$="-title-link"]', { hasText: productName }).click();
     }
 
     async addProductToCart(productName: string) {
