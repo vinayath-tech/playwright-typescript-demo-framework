@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx playwright test --config=config/playwright.config.ts tests/ui-tests/specs/product-details.spec.ts)",
+      "Bash(npx playwright test --config=config/playwright.config.ts tests/ui-tests/specs/product-details.spec.ts --project=\"ui-tests\")",
+      "Bash(npx playwright test --config=config/playwright.config.ts tests/ui-tests/specs/product-details.spec.ts --project=chromium)",
+      "Bash(test_env=test npx playwright test --config=config/playwright.config.ts tests/ui-tests/specs/product-details.spec.ts)"
+    ]
+  }
+}

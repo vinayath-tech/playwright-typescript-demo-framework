@@ -3,6 +3,7 @@ import LoginSteps from '../steps/loginSteps';
 import CheckoutSteps from '../steps/checkoutSteps';
 import SortingSteps from '../steps/sortingSteps';
 import CartSteps from '../steps/cartSteps';
+import ProductDetailsSteps from '../steps/productDetailsSteps';
 import AxeBuilder from '@axe-core/playwright';
 
 type PageFixtures = {
@@ -10,6 +11,7 @@ type PageFixtures = {
     checkoutSteps: CheckoutSteps;
     sortingSteps: SortingSteps;
     cartSteps: CartSteps;
+    productDetailsSteps: ProductDetailsSteps;
     axeBuilder: () => AxeBuilder;
 }
 
@@ -32,6 +34,11 @@ export const test = base.extend<PageFixtures>({
     cartSteps: async ({ page }, use) => {
         const cartSteps = new CartSteps(page);
         await use(cartSteps);
+    },
+
+    productDetailsSteps: async ({ page }, use) => {
+        const productDetailsSteps = new ProductDetailsSteps(page);
+        await use(productDetailsSteps);
     },
 
     axeBuilder: async ({ page }, use) => {
