@@ -20,6 +20,10 @@
     "docker:build": "docker build -t playwright-tests-demo .",
     "docker:run": "docker run --rm -v \"$(pwd)/playwright-report\":/app/playwright-report playwright-tests-demo",
     "test:ui:ai-triage": "cross-env AI_TRIAGE_MAX_FAILURES=20 npm run test:ui",
-    "test:api:ai-triage": "cross-env AI_TRIAGE_MAX_FAILURES=20 npm run test:api"
+    "test:api:ai-triage": "cross-env AI_TRIAGE_MAX_FAILURES=20 npm run test:api",
+    "test:ui:flakiness": "cross-env test_env=test npx playwright test --config=config/playwright.flakiness.config.ts",
+    "test:api:flakiness": "cross-env test_env=test npx playwright test --config=config/playwright.api.flakiness.config.ts",
+    "test:ui:autofix": "cross-env test_env=test npx playwright test --config=config/playwright.autofix.config.ts",
+    "test:api:autofix": "cross-env test_env=test npx playwright test --config=config/playwright.api.autofix.config.ts"
   }
 }
