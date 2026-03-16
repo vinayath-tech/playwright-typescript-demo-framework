@@ -23,7 +23,7 @@ export class ProductsPage {
     }
 
     async goToCart() {
-        await this.webAction.clickElement("#shopping_cart_containe > a.shopping_cart_link");
+        await this.webAction.clickElement("#shopping_cart_container > a.shopping_cart_link");
     }
 
     async getCartBadgeCount(): Promise<number> {
