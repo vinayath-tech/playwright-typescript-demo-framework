@@ -11,6 +11,7 @@
     "@faker-js/faker": "^10.2.0",
     "@playwright/test": "^1.58.1",
     "@types/node": "^25.2.0",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.3"
   },
   "scripts": {
@@ -20,6 +21,7 @@
     "docker:build": "docker build -t playwright-tests-demo .",
     "docker:run": "docker run --rm -v \"$(pwd)/playwright-report\":/app/playwright-report playwright-tests-demo",
     "test:ui:ai-triage": "cross-env AI_TRIAGE_MAX_FAILURES=20 npm run test:ui",
-    "test:api:ai-triage": "cross-env AI_TRIAGE_MAX_FAILURES=20 npm run test:api"
+    "test:api:ai-triage": "cross-env AI_TRIAGE_MAX_FAILURES=20 npm run test:api",
+    "heal:review": "cross-env test_env=test npx tsx scripts/review-heals.ts"
   }
 }

@@ -2,7 +2,8 @@ import { test } from '../fixtures/pageFixtures';
 
 test.describe('Checkout feature', () => {
 
-    test('Verify successful product checkout flow', async ({ checkoutSteps }) => {
+    test('Verify successful product checkout flow',
+         async ({ checkoutSteps }) => {
         // Complete the entire checkout flow
         await checkoutSteps.completeCheckoutFlow(
             'sauce-labs-backpack',
