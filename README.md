@@ -352,45 +352,49 @@ SELF_HEALING_QUEUE_PATH="artifacts/self-healing/pending-review.json"
 
 ### Data & Request Flow
 
-```
- Test Spec
-    │  calls
-    ▼
- Steps (business logic + expect assertions)
-    │  delegates UI actions to
-    ▼
- Page Object (locator definitions)
-    │  executes via
-    ▼
- WebActions (Playwright wrapper)
-    │
-    ├─── [locator OK] ──────────────────────────► Playwright browser action
-    │
-    └─── [locator fails] ──► SelfHealingEngine
-                                    │
-                                    ├── check LocatorCache (skip AI if cached)
-                                    ├── call LLM → ranked alternative locators
-                                    ├── validate each alternative on live DOM
-                                    ├── persist winning locator to cache
-                                    │
-                                    ├── SELF_HEALING_MODE=auto
-                                    │       └── patch pageFactory source file
-                                    │
-                                    └── SELF_HEALING_MODE=review
-                                            └── queue proposal → pending-review.json
-                                                    │
-                                                    └── npm run heal:review
-                                                            (approve / reject / skip)
+```mermaid
+flowchart TD
+    A([Test Spec]) --> B[Steps\nbusiness logic + assertions]
+    B --> C[Page Object\nlocator definitions]
+    C --> D[WebActions\nPlaywright wrapper]
 
+    D --> E{Locator resolves?}
 
- End of test run
-    │
-    ▼
- AI Failure Reporter
-    ├── collect all unexpected failures
-    ├── extract screenshots (if AI_TRIAGE_INCLUDE_SCREENSHOTS=true)
-    └── send to LLM → root cause classification + next debugging step
-                      printed as "AI FAILURE TRIAGE" in terminal
+    E -- Yes --> F([Playwright Browser Action])
+
+    E -- No --> G[SelfHealingEngine]
+    G --> H{In cache?}
+    H -- Yes --> I[Use cached locator]
+    I --> F
+
+    H -- No --> J[Call LLM\nrequest alternative locators]
+    J --> K[Validate alternatives\nagainst live DOM]
+    K --> L[Persist winning locator\nto healed-locators.json]
+
+    L --> M{SELF_HEALING_MODE}
+    M -- auto --> N[Patch pageFactory\nsource file]
+    M -- review --> O[Queue proposal\nto pending-review.json]
+    O --> P[npm run heal:review\napprove / reject / skip]
+    P -- approved --> N
+
+    N --> F
+
+    F --> Q{Test passed?}
+    Q -- Yes --> R([Run complete])
+    Q -- No --> S[AI Failure Reporter\ncollect failure details]
+    S --> T{Screenshots enabled?\nAI_TRIAGE_INCLUDE_SCREENSHOTS}
+    T -- Yes --> U[Attach failure screenshot\nas base64]
+    T -- No --> V[Send error + stack trace\nto LLM]
+    U --> V
+    V --> W([Print AI FAILURE TRIAGE\nroot cause + next step])
+
+    style A fill:#4a90d9,color:#fff,stroke:none
+    style F fill:#27ae60,color:#fff,stroke:none
+    style R fill:#27ae60,color:#fff,stroke:none
+    style W fill:#e67e22,color:#fff,stroke:none
+    style G fill:#8e44ad,color:#fff,stroke:none
+    style S fill:#8e44ad,color:#fff,stroke:none
+    style J fill:#8e44ad,color:#fff,stroke:none
 ```
 
 ---
