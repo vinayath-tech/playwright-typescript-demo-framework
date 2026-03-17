@@ -36,7 +36,7 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure'
   },
-  globalSetup: require.resolve('../lib/global-setup'),
+  globalSetup: require.resolve('../lib/global-setup.ts'),
 
   /* Configure projects for major browsers */
   projects: [

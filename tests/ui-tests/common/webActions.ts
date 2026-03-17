@@ -3,10 +3,28 @@ import { Locator } from 'playwright';
 import { resolve } from 'path';
 import { SelfHealingEngine } from './self-healing/SelfHealingEngine';
 import type { SelfHealingConfig } from './self-healing/types';
+import { VisualTestingEngine, type VisualMatchOptions } from './visual-testing/VisualTestingEngine';
 
 // How long the INITIAL action attempt waits before giving up and triggering healing.
 // Kept short so healing has time to run within the overall test timeout.
 const INITIAL_ACTION_TIMEOUT_MS = 5000;
+
+function buildVisualTestingConfig() {
+    return {
+        enabled: process.env.VISUAL_TESTING_ENABLED === 'true',
+        mode: (process.env.VISUAL_TESTING_MODE ?? 'review') as 'auto' | 'review',
+        endpoint: process.env.VISUAL_TESTING_AI_ENDPOINT ?? 'https://api.openai.com/v1/responses',
+        apiKey: process.env.VISUAL_TESTING_AI_KEY ?? '',
+        model: process.env.VISUAL_TESTING_AI_MODEL ?? 'gpt-4o',
+        baselinesDir: resolve(
+            process.cwd(),
+            process.env.VISUAL_TESTING_BASELINES_DIR ?? 'artifacts/visual-testing/baselines'
+        ),
+        actualsDir: resolve(process.cwd(), 'artifacts/visual-testing/actuals'),
+        diffsDir: resolve(process.cwd(), 'artifacts/visual-testing/diffs'),
+        reviewQueuePath: resolve(process.cwd(), 'artifacts/visual-testing/pending-review.json'),
+    };
+}
 
 function buildSelfHealingConfig(): SelfHealingConfig {
     return {
@@ -34,11 +52,14 @@ export class WebActions {
 
     readonly page: Page;
     private engine: SelfHealingEngine | null;
+    private visualEngine: VisualTestingEngine | null;
 
     constructor(page: Page) {
         this.page = page;
-        const config = buildSelfHealingConfig();
-        this.engine = config.enabled ? new SelfHealingEngine(config) : null;
+        const selfHealingConfig = buildSelfHealingConfig();
+        this.engine = selfHealingConfig.enabled ? new SelfHealingEngine(selfHealingConfig) : null;
+        const visualConfig = buildVisualTestingConfig();
+        this.visualEngine = visualConfig.enabled ? new VisualTestingEngine(visualConfig) : null;
     }
 
     /**
@@ -112,5 +133,23 @@ export class WebActions {
         await this.withSelfHealing(selector,
             (sel, timeout) => this.page.selectOption(sel, value, { timeout })
         );
+    }
+
+    /**
+     * Captures a screenshot and validates it against the stored baseline using
+     * an LLM vision model.
+     *
+     * - First call for a given `name`: saves the screenshot as the baseline
+     *   and passes immediately (bootstrapping run — no AI call needed).
+     * - Subsequent calls: sends baseline + actual to the LLM for pixel-level
+     *   comparison and acts according to the configured mode:
+     *     • review — queues any detected diff for human review, test passes.
+     *     • auto   — throws with the full AI analysis on mismatch, test fails.
+     *
+     * No-op when VISUAL_TESTING_ENABLED is not set to 'true'.
+     */
+    async assertVisualMatch(name: string, options?: VisualMatchOptions): Promise<void> {
+        if (!this.visualEngine) return;
+        await this.visualEngine.compare(this.page, name, options);
     }
 }
