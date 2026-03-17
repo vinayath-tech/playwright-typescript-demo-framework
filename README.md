@@ -297,20 +297,101 @@ SELF_HEALING_QUEUE_PATH="artifacts/self-healing/pending-review.json"
 ## Architecture
 
 ```
-Spec  →  Steps  →  Page Objects  →  WebActions  →  SelfHealingEngine
-                                         ↑
-                               (wraps all Playwright calls)
+┌─────────────────────────────────────────────────────────────────────────┐
+│                             SPEC LAYER                                  │
+│              tests/ui-tests/specs/  ·  tests/api-tests/                 │
+│        Thin test files — one describe block per feature area.           │
+│        Import fixtures only. No locators, no assertions inline.         │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────────────────┐
+│                           FIXTURES LAYER                                │
+│                 tests/ui-tests/fixtures/pageFixtures.ts                 │
+│      Playwright test.extend — wires Steps classes into test context.    │
+│                    Pre-authenticated via storageState.                  │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────────────────┐
+│                            STEPS LAYER                                  │
+│                       tests/ui-tests/steps/                             │
+│     Business logic and assertions. Extends BaseSteps, which provides   │
+│     all page objects. Each method maps to one test scenario.            │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────────────────┐
+│                         PAGE OBJECT LAYER                               │
+│                     tests/ui-tests/pageFactory/                         │
+│   One class per page/component. Holds locators and low-level UI         │
+│   interactions only — no assertions, no business logic.                 │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────────────────┐
+│                      WEBACTIONS & AI/ML LAYER                           │
+│   tests/ui-tests/common/webActions.ts  ·  common/self-healing/          │
+│                                                                         │
+│   WebActions — wraps all Playwright interactions (click, fill,          │
+│   select, visibility checks). Single integration point for the          │
+│   self-healing pipeline.                                                │
+│                                                                         │
+│   SelfHealingEngine — detects broken locators at runtime, calls the     │
+│   AI for alternatives, validates against the live DOM, updates          │
+│   source files or queues proposals for review.                          │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+┌───────────────────────────────▼─────────────────────────────────────────┐
+│                    CONFIGURATION & REPORTING LAYER                      │
+│    config/playwright.config.ts  ·  config/playwright.api.config.ts      │
+│    lib/reporters/ai-failure-analysis/  ·  lib/env.ts                    │
+│                                                                         │
+│   Playwright config — projects, retries, base URLs, storage state.      │
+│   AI Failure Reporter — custom Playwright reporter that collects        │
+│   failures post-run and sends them to an LLM for root cause triage.     │
+│   ENV — typed loader for all credentials and AI config from .env.test.  │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Layer | Location | Responsibility |
-|---|---|---|
-| Spec | `tests/ui-tests/specs/` | Thin test files using fixtures |
-| Steps | `tests/ui-tests/steps/` | Business logic + assertions, extends `BaseSteps` |
-| Page Objects | `tests/ui-tests/pageFactory/` | Locators + raw UI interactions via `WebActions` |
-| Fixtures | `tests/ui-tests/fixtures/pageFixtures.ts` | Exposes Steps classes to specs |
-| WebActions | `tests/ui-tests/common/webActions.ts` | Playwright wrapper with self-healing support |
-| Self-Healing | `tests/ui-tests/common/self-healing/` | AI-powered locator repair engine |
-| AI Reporter | `lib/reporters/ai-failure-analysis/` | Post-run failure triage via LLM |
+### Data & Request Flow
+
+```
+ Test Spec
+    │  calls
+    ▼
+ Steps (business logic + expect assertions)
+    │  delegates UI actions to
+    ▼
+ Page Object (locator definitions)
+    │  executes via
+    ▼
+ WebActions (Playwright wrapper)
+    │
+    ├─── [locator OK] ──────────────────────────► Playwright browser action
+    │
+    └─── [locator fails] ──► SelfHealingEngine
+                                    │
+                                    ├── check LocatorCache (skip AI if cached)
+                                    ├── call LLM → ranked alternative locators
+                                    ├── validate each alternative on live DOM
+                                    ├── persist winning locator to cache
+                                    │
+                                    ├── SELF_HEALING_MODE=auto
+                                    │       └── patch pageFactory source file
+                                    │
+                                    └── SELF_HEALING_MODE=review
+                                            └── queue proposal → pending-review.json
+                                                    │
+                                                    └── npm run heal:review
+                                                            (approve / reject / skip)
+
+
+ End of test run
+    │
+    ▼
+ AI Failure Reporter
+    ├── collect all unexpected failures
+    ├── extract screenshots (if AI_TRIAGE_INCLUDE_SCREENSHOTS=true)
+    └── send to LLM → root cause classification + next debugging step
+                      printed as "AI FAILURE TRIAGE" in terminal
+```
 
 ---
 
