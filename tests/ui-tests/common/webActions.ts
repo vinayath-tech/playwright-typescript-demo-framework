@@ -11,7 +11,7 @@ const INITIAL_ACTION_TIMEOUT_MS = 5000;
 function buildSelfHealingConfig(): SelfHealingConfig {
     return {
         enabled: process.env.SELF_HEALING_ENABLED === 'true',
-        mode: (process.env.SELF_HEALING_MODE ?? 'auto') as 'auto' | 'review',
+        mode: (process.env.SELF_HEALING_MODE ?? 'review') as 'auto' | 'review',
         endpoint: process.env.SELF_HEALING_AI_ENDPOINT ?? 'https://api.openai.com/v1/responses',
         apiKey: process.env.SELF_HEALING_AI_KEY ?? '',
         model: process.env.SELF_HEALING_AI_MODEL ?? 'gpt-4o',
