@@ -19,6 +19,7 @@ A production-grade UI and API test automation framework built with [Playwright](
   - [Intelligent Failure Analysis](#2-intelligent-failure-analysis)
   - [Self-Healing Locators](#3-self-healing-locators)
   - [AI-Assisted Visual Regression Testing](#4-ai-assisted-visual-regression-testing)
+- [Observability](#observability)
 - [Architecture](#architecture)
 - [Environment Variables Reference](#environment-variables-reference)
 
@@ -105,6 +106,11 @@ npm run test:api  # API tests
 
 ```
 playwright-typescript-demo-framework/
+├── .claude/
+│   └── skills/                       # Claude Code skills (slash commands)
+│       ├── ui-test/SKILL.md          # /ui-test  — UI test generator
+│       ├── api-test/SKILL.md         # /api-test — API test generator
+│       └── playwright-cli/SKILL.md   # Browser automation reference
 ├── config/
 │   ├── playwright.config.ts          # UI test configuration
 │   └── playwright.api.config.ts      # API test configuration
@@ -120,6 +126,8 @@ playwright-typescript-demo-framework/
 │   │   │   └── visual-testing/       # AI-assisted visual regression engine
 │   │   └── helpers/pa11yHelper.ts    # Accessibility helpers
 │   └── api-tests/                    # REST API test cases
+├── testdata/                         # API request payloads
+├── utils/sharedState.ts              # Cross-spec state (token, bookingId)
 ├── lib/
 │   ├── env.ts                        # Typed env variable loader
 │   ├── global-setup.ts               # Global test setup
@@ -137,8 +145,6 @@ playwright-typescript-demo-framework/
 │       └── pending-review.json       # Visual diff review queue
 ├── docs/
 │   └── ai-failure-triage.md
-├── prompts/
-│   └── ui-test-instructions.md       # AI test generation instructions
 └── env/
     └── .env.test                     # Environment variables (not committed)
 ```
@@ -180,12 +186,26 @@ npx playwright test --config=config/playwright.config.ts --headed
 
 Describe what you want to test in plain English and the framework will:
 
-1. Launch a real Chrome browser and perform the manual journey step by step
-2. Capture locators and interactions automatically
-3. Generate a fully structured TypeScript test following the POM pattern used in this project
+1. Perform the scenario manually first — a real Chrome browser for UI, `curl` for API
+2. Capture locators, interactions and responses automatically
+3. Generate a fully structured TypeScript test following the pattern used in this project
 4. Run the generated test to verify it passes
 
 **Requirements:** [Claude Code CLI](https://claude.ai/code) installed and authenticated.
+
+The generators ship as Claude Code **skills** under [.claude/skills/](.claude/skills/), so they are
+available as slash commands as soon as the repo is open:
+
+| Command | Skill | Generates |
+|---------|-------|-----------|
+| `/ui-test` | [.claude/skills/ui-test/SKILL.md](.claude/skills/ui-test/SKILL.md) | Page, Steps, Fixture and Spec files following the POM architecture |
+| `/api-test` | [.claude/skills/api-test/SKILL.md](.claude/skills/api-test/SKILL.md) | Spec file plus a `testdata/` payload, following the API test pattern |
+
+Both skills set `disable-model-invocation: true`, so they run only when you invoke them explicitly.
+
+> **Note:** a skill is discovered only at `.claude/skills/<name>/SKILL.md`, and the filename is
+> case-sensitive — `SKILL.MD` will be silently ignored. New skills are picked up when the
+> Claude Code session starts, so restart the session after adding one.
 
 **How to use:**
 
@@ -201,7 +221,7 @@ Claude Code will:
 - Generate the Page, Steps, Fixture, and Spec files following the project's POM architecture
 - Run the new test and report the result
 
-**What gets generated (example for a new feature):**
+**What gets generated (example for a new UI feature):**
 
 ```
 tests/ui-tests/pageFactory/newFeaturePage.ts   ← locators + low-level actions
@@ -210,7 +230,24 @@ tests/ui-tests/fixtures/pageFixtures.ts        ← updated with new fixture
 tests/ui-tests/specs/new-feature.spec.ts       ← thin test file
 ```
 
-The generation prompt is defined in [prompts/ui-test-instructions.md](prompts/ui-test-instructions.md) and enforces the same conventions as the existing codebase.
+For API coverage the flow is the same, driven by `curl` instead of a browser:
+
+```
+/api-test verify the Update booking endpoint works
+```
+
+**What gets generated (example for a new endpoint):**
+
+```
+testdata/newEndpointData.ts                    ← request payloads
+tests/api-tests/06-NewEndpoint.spec.ts         ← spec using Playwright's request fixture
+```
+
+> API specs share state (token, booking ID) via [utils/sharedState.ts](utils/sharedState.ts) and run in
+> filename order, so the numeric prefix determines execution order — an endpoint that acts on a booking
+> must sort before `05-DeleteBooking.spec.ts`.
+
+Each skill enforces the same conventions as the existing codebase.
 
 ---
 
@@ -401,6 +438,48 @@ VISUAL_TESTING_MODE=review                                           # "auto" or
 ```
 
 > Set `VISUAL_TESTING_ENABLED=false` (or omit the variable) to skip all visual checks without removing the test calls.
+
+---
+
+## Observability
+
+A custom Playwright reporter at `lib/reporters/observability/` emits two outputs at the end of every UI run:
+
+1. A structured **JSON artifact** (`artifacts/observability/run-<timestamp>.json` plus `latest.json`) — full per-test detail, suite roll-ups, and a run summary including pass rate and flakiness rate.
+2. A push to a **Prometheus Pushgateway** with curated metrics (test counts, retries, duration histograms, run-level gauges) so trends, percentiles, and regressions are queryable in Grafana.
+
+The reporter is **off by default** — wire it up by setting `OBSERVABILITY_ENABLED=true`. If `PROMETHEUS_PUSHGATEWAY_URL` is unset the JSON is still written; the push step is skipped silently. Push failures never fail the test run.
+
+### Run the local stack
+
+```bash
+npm run monitoring:up                # starts Pushgateway, Prometheus, Grafana
+npm run test:ui:observability        # runs the UI suite with the reporter active
+```
+
+Then open:
+
+- **Grafana** → http://localhost:3000 (login: `admin` / `admin`) → folder **Playwright** → dashboard **Playwright Overview**
+- **Prometheus** → http://localhost:9090
+- **Pushgateway** → http://localhost:9091 (raw `/metrics` endpoint)
+
+Tear down with `npm run monitoring:down`.
+
+### Metrics exposed
+
+| Metric | Type | Labels |
+| --- | --- | --- |
+| `playwright_tests_total` | counter | project, suite, status, browser |
+| `playwright_test_retries_total` | counter | project, suite, test |
+| `playwright_test_duration_seconds` | histogram | project, suite, test, status |
+| `playwright_run_pass_rate` | gauge | project, run_id |
+| `playwright_run_flakiness_rate` | gauge | project, run_id |
+| `playwright_run_duration_seconds` | gauge | project, run_id |
+| `playwright_run_total_tests` | gauge | project, run_id |
+| `playwright_run_failed_tests` | gauge | project, run_id |
+| `playwright_run_timestamp_seconds` | gauge | project, run_id |
+
+> **Cardinality**: the `test` label is per-test name. Acceptable at small suite sizes; the collector logs a warning above 500 unique `(project, suite, test)` tuples — a signal to drop the `test` label and rely on `suite` only.
 
 ---
 
