@@ -6,6 +6,12 @@ export class CartPage {
     private webAction: WebActions;
     readonly page: Page;
 
+    // Locators
+    private cartItem = '.cart_item';
+    private cartItemName = '.inventory_item_name';
+    private cartItemPrice = '.inventory_item_price';
+    private cartItemQuantity = '.cart_quantity';
+
     constructor(page: Page) {
         this.page = page;
         this.webAction = new WebActions(this.page);
@@ -18,6 +24,42 @@ export class CartPage {
 
     async getCartItemCount(): Promise<number> {
         return await this.page.locator('.cart_item').count();
+    }
+
+    async getCartItemNames(): Promise<string[]> {
+        const names = await this.webAction.getAllElements(`${this.cartItem} ${this.cartItemName}`);
+        const nameList: string[] = [];
+
+        for (const name of names) {
+            const text = await name.textContent();
+            if (text) nameList.push(text.trim());
+        }
+
+        return nameList;
+    }
+
+    async getCartItemPrices(): Promise<number[]> {
+        const prices = await this.webAction.getAllElements(`${this.cartItem} ${this.cartItemPrice}`);
+        const priceList: number[] = [];
+
+        for (const price of prices) {
+            const text = await price.textContent();
+            if (text) priceList.push(parseFloat(text.replace('$', '').trim()));
+        }
+
+        return priceList;
+    }
+
+    async getCartItemQuantities(): Promise<number[]> {
+        const quantities = await this.webAction.getAllElements(`${this.cartItem} ${this.cartItemQuantity}`);
+        const quantityList: number[] = [];
+
+        for (const quantity of quantities) {
+            const text = await quantity.textContent();
+            if (text) quantityList.push(parseInt(text.trim(), 10));
+        }
+
+        return quantityList;
     }
 
     async proceedToCheckout() {

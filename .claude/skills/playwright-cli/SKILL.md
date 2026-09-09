@@ -276,4 +276,4 @@ playwright-cli close
 * **Test generation** [references/test-generation.md](references/test-generation.md)
 * **Tracing** [references/tracing.md](references/tracing.md)
 * **Video recording** [references/video-recording.md](references/video-recording.md)
-* **Manual UI Test & Automated playwright code generation** [manual-tests/ui-test-instructions.md](../../../manual-tests/ui-test-instructions.md)
+* **Manual UI Test & Automated playwright code generation** [prompts/ui-test-instructions.md](../ui-test/SKILL.md)

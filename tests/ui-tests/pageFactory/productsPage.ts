@@ -6,6 +6,11 @@ export class ProductsPage {
     private webAction: WebActions;
     readonly page: Page;
 
+    // Locators
+    private inventoryItem = '.inventory_item';
+    private inventoryItemName = '.inventory_item_name';
+    private inventoryItemPrice = '.inventory_item_price';
+
     constructor(page: Page) {
         this.page = page;
         this.webAction = new WebActions(this.page);
@@ -20,6 +25,20 @@ export class ProductsPage {
         // const productSelector = `[data-test="add-to-cart-${productName.toLowerCase().replace(/\s+/g, '-')}"]`;
         const productSelector = `[data-test="add-to-cart-${productName.toLowerCase().replace(/\s+/g, '-')}"]`;
         await this.webAction.clickElement(productSelector);
+    }
+
+    /** Product name -> advertised price, as listed on the inventory page. */
+    async getInventoryPrices(): Promise<Map<string, number>> {
+        const items = await this.webAction.getAllElements(this.inventoryItem);
+        const prices = new Map<string, number>();
+
+        for (const item of items) {
+            const name = (await item.locator(this.inventoryItemName).textContent())?.trim();
+            const price = (await item.locator(this.inventoryItemPrice).textContent())?.trim();
+            if (name && price) prices.set(name, parseFloat(price.replace('$', '')));
+        }
+
+        return prices;
     }
 
     async goToCart() {
