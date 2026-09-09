@@ -5,6 +5,7 @@ import { CartPage } from "../pageFactory/cartPage";
 import { CheckoutPage } from "../pageFactory/checkoutPage";
 import { InventoryPage } from "../pageFactory/inventoryPage";
 import { ProductDetailsPage } from "../pageFactory/productDetailsPage";
+import { MenuPage } from "../pageFactory/menuPage";
 
 export default class BaseSteps {
 
@@ -15,6 +16,7 @@ export default class BaseSteps {
     readonly checkoutPage: CheckoutPage;
     readonly inventoryPage: InventoryPage;
     readonly productDetailsPage: ProductDetailsPage;
+    readonly menuPage: MenuPage;
 
     constructor(page: Page) {
         this.page = page;
@@ -24,5 +26,6 @@ export default class BaseSteps {
         this.checkoutPage = new CheckoutPage(this.page);
         this.inventoryPage = new InventoryPage(this.page);
         this.productDetailsPage = new ProductDetailsPage(this.page);
+        this.menuPage = new MenuPage(this.page);
     }
 }

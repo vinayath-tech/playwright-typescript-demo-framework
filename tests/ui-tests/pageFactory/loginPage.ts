@@ -24,6 +24,18 @@ export class LoginPage {
         await this.webAction.navigateTo('/');
     }
 
+    async isLoginFormVisible(): Promise<boolean> {
+        return await this.webAction.isElementVisible('#login-button');
+    }
+
+    async getUsernameFieldValue(): Promise<string> {
+        return await this.page.locator('#user-name').inputValue();
+    }
+
+    async getErrorMessage(): Promise<string> {
+        return (await this.page.locator('[data-test="error"]').textContent())?.trim() ?? '';
+    }
+
     async verifyLoginSuccess(expText: string) {
         await this.webAction.isElementVisible('.inventory_list');
         await this.webAction.isTextPresent('.app_logo', expText);

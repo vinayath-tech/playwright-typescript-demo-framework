@@ -4,6 +4,7 @@ import CheckoutSteps from '../steps/checkoutSteps';
 import SortingSteps from '../steps/sortingSteps';
 import CartSteps from '../steps/cartSteps';
 import ProductDetailsSteps from '../steps/productDetailsSteps';
+import LogoutSteps from '../steps/logoutSteps';
 import AxeBuilder from '@axe-core/playwright';
 import { WebActions } from '../common/webActions';
 
@@ -13,6 +14,7 @@ type PageFixtures = {
     sortingSteps: SortingSteps;
     cartSteps: CartSteps;
     productDetailsSteps: ProductDetailsSteps;
+    logoutSteps: LogoutSteps;
     axeBuilder: () => AxeBuilder;
     /** Visual testing handle — call assertVisualMatch() to snapshot-test the current page. */
     visualActions: WebActions;
@@ -42,6 +44,11 @@ export const test = base.extend<PageFixtures>({
     productDetailsSteps: async ({ page }, use) => {
         const productDetailsSteps = new ProductDetailsSteps(page);
         await use(productDetailsSteps);
+    },
+
+    logoutSteps: async ({ page }, use) => {
+        const logoutSteps = new LogoutSteps(page);
+        await use(logoutSteps);
     },
 
     axeBuilder: async ({ page }, use) => {
